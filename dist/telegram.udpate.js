@@ -50,8 +50,6 @@ let TelegramUpdate = class TelegramUpdate {
             "unknown";
         const userId = ctx.match[1];
         const chatId = ctx.match[2];
-        const admId = ("callback_query" in ctx.update && ctx.update.callback_query.from.id) ||
-            0;
         try {
             const botMember = await ctx.telegram.getChatMember(chatId, this.bot.botInfo.id);
             const botAdmin = botMember;
@@ -71,7 +69,6 @@ let TelegramUpdate = class TelegramUpdate {
                 const deletePromises = batch.map(async (message) => {
                     try {
                         await ctx.telegram.deleteMessage(chatId, Number(message.messageId));
-                        console.log(`Удалено сообщение ${message.messageId} от пользователя ${userId}`);
                     }
                     catch (error) {
                         console.warn(`Не удалось удалить сообщение ${message.messageId}: ${error.message}`);
@@ -82,7 +79,6 @@ let TelegramUpdate = class TelegramUpdate {
             }
             this.appService.deleteUserMessages(userId, chatId);
             await ctx.telegram.banChatMember(chatId, Number(userId));
-            console.log(`Пользователь ${userId} удален из группы ${chatId}`);
             await ctx.answerCbQuery("Пользователь успешно удален", {
                 show_alert: false,
             });
@@ -91,11 +87,56 @@ let TelegramUpdate = class TelegramUpdate {
                 await ctx.telegram.sendMessage(adminChatId, adminNotification, {
                     parse_mode: "MarkdownV2",
                 });
-                console.log(`Уведомление отправлено в ${adminChatId}`);
             }
         }
         catch (error) {
             console.error("Ошибка при удалении пользователя или сообщений:", error);
+            await ctx.answerCbQuery(`Ошибка: ${error.message}`, { show_alert: true });
+        }
+    }
+    async onDeleteMessage(ctx) {
+        if (!(this.bot && this.bot.botInfo)) {
+            await ctx.answerCbQuery("Ошибка: бот не инициализирован", {
+                show_alert: true,
+            });
+            return;
+        }
+        if (!("match" in ctx && ctx.match)) {
+            await ctx.answerCbQuery("Ошибка: неверный формат callback_data", {
+                show_alert: true,
+            });
+            return;
+        }
+        const messageId = ctx.match[1];
+        const userId = ctx.match[2];
+        const chatId = ctx.match[3];
+        const username = ("callback_query" in ctx.update &&
+            ctx.update.callback_query.from.username) ||
+            "unknown";
+        const admId = ("callback_query" in ctx.update && ctx.update.callback_query.from.id) ||
+            0;
+        try {
+            const botMember = await ctx.telegram.getChatMember(chatId, this.bot.botInfo.id);
+            const botAdmin = botMember;
+            if (!botAdmin.can_delete_messages) {
+                await ctx.answerCbQuery("Бот не имеет прав для удаления сообщений", {
+                    show_alert: true,
+                });
+                return;
+            }
+            this.appService.deleteUserMessage(userId, messageId);
+            await ctx.telegram.deleteMessage(chatId, Number(messageId));
+            await ctx.answerCbQuery("Сообщение успешно удалено", {
+                show_alert: false,
+            });
+            const adminNotification = `Сообщение с ID \`${this.telegramUtils.escapeMarkdown(messageId)}\` удалено из чата \`${this.telegramUtils.escapeMarkdown(chatId)}\` администратором @${this.telegramUtils.escapeMarkdown(username)}`;
+            for (const adminChatId of this.appService.getAdminChatIds()) {
+                await ctx.telegram.sendMessage(adminChatId, adminNotification, {
+                    parse_mode: "MarkdownV2",
+                });
+            }
+        }
+        catch (error) {
             await ctx.answerCbQuery(`Ошибка: ${error.message}`, { show_alert: true });
         }
     }
@@ -109,7 +150,7 @@ __decorate([
     __metadata("design:returntype", Promise)
 ], TelegramUpdate.prototype, "onStart", null);
 __decorate([
-    (0, nestjs_telegraf_1.On)("text"),
+    (0, nestjs_telegraf_1.On)("message"),
     __param(0, (0, nestjs_telegraf_1.Ctx)()),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [telegraf_1.Context]),
@@ -122,6 +163,13 @@ __decorate([
     __metadata("design:paramtypes", [telegraf_1.Context]),
     __metadata("design:returntype", Promise)
 ], TelegramUpdate.prototype, "onDelete", null);
+__decorate([
+    (0, nestjs_telegraf_1.Action)(/^delete_message_(\d+)_from_(\d+)_in_(-?\d+)$/),
+    __param(0, (0, nestjs_telegraf_1.Ctx)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [telegraf_1.Context]),
+    __metadata("design:returntype", Promise)
+], TelegramUpdate.prototype, "onDeleteMessage", null);
 exports.TelegramUpdate = TelegramUpdate = __decorate([
     (0, nestjs_telegraf_1.Update)(),
     __param(1, (0, nestjs_telegraf_1.InjectBot)()),

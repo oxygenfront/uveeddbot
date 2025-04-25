@@ -9,4 +9,5 @@ export declare class TelegramUpdate {
     onStart(ctx: Context): Promise<void>;
     onText(ctx: Context): Promise<void>;
     onDelete(ctx: Context): Promise<void>;
+    onDeleteMessage(ctx: Context): Promise<void>;
 }

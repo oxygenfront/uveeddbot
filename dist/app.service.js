@@ -46,7 +46,6 @@ let AppService = class AppService {
         const message = ctx.message;
         const username = message.from?.username || "unknown";
         const userId = message.from?.id?.toString();
-        const text = message.text || "";
         const chatId = ctx.chat?.id?.toString();
         const messageId = message.message_id?.toString();
         if (!userId || !chatId) {
@@ -61,12 +60,45 @@ let AppService = class AppService {
             messages.push({ chatId, messageId });
             this.userMessages.set(userId, messages);
         }
+        let messageType = "сообщение";
+        if (message.text) {
+            messageType = "текстовое сообщение";
+        }
+        else if (message.photo) {
+            messageType = "фото";
+        }
+        else if (message.video) {
+            messageType = "видео";
+        }
+        else if (message.sticker) {
+            messageType = "стикер";
+        }
+        else if (message.voice) {
+            messageType = "голосовое сообщение";
+        }
+        else if (message.document) {
+            messageType = "документ";
+        }
+        else if (message.animation) {
+            messageType = "гиф";
+        }
+        else if (message.audio) {
+            messageType = "аудио";
+        }
         const chatTitle = ctx.chat?.type !== "private"
             ? ` в чате \`${this.telegramUtils.escapeMarkdown(ctx.chat?.title || "")}\``
             : "";
-        const notification = `Новое сообщение от @${this.telegramUtils.escapeMarkdown(username)} ${chatTitle}:\n\`${this.telegramUtils.escapeMarkdown(text)}\``;
+        const notification = `Новое ${messageType} от @${this.telegramUtils.escapeMarkdown(username)} ${chatTitle}`;
         try {
             for (const adminChatId of this.adminChatIds) {
+                try {
+                    await this.telegrafService
+                        .getBot()
+                        .telegram.forwardMessage(adminChatId, chatId, Number(messageId));
+                }
+                catch (error) {
+                    console.warn(`Не удалось переслать сообщение ${messageId} в ${adminChatId}: ${error.message}`);
+                }
                 await this.telegrafService
                     .getBot()
                     .telegram.sendMessage(adminChatId, notification, {
@@ -75,7 +107,13 @@ let AppService = class AppService {
                         inline_keyboard: [
                             [
                                 {
-                                    text: "❌ Заблокировать пользователя",
+                                    text: "Удалить сообщение",
+                                    callback_data: `delete_message_${messageId}_from_${userId}_in_${chatId}`,
+                                },
+                            ],
+                            [
+                                {
+                                    text: "Удалить пользователя",
                                     callback_data: `delete_user_${userId}_from_${chatId}`,
                                 },
                             ],
@@ -83,13 +121,31 @@ let AppService = class AppService {
                     },
                 });
             }
-            console.log(this.userMessages);
         }
-        catch (error) { }
+        catch (error) {
+            console.error("Ошибка при отправке уведомления:", error);
+        }
     }
     getUserMessages(userId, chatId) {
         const messages = this.userMessages.get(userId) || [];
         return messages.filter((msg) => msg.chatId === chatId);
+    }
+    deleteUserMessage(userId, messageId) {
+        const messages = this.userMessages.get(userId);
+        if (!messages) {
+            return;
+        }
+        const index = messages.findIndex((msg) => msg.messageId === messageId);
+        if (index === -1) {
+            return;
+        }
+        messages.splice(index, 1);
+        if (messages.length === 0) {
+            this.userMessages.delete(userId);
+        }
+        else {
+            this.userMessages.set(userId, messages);
+        }
     }
     deleteUserMessages(userId, chatId) {
         const messages = this.userMessages.get(userId) || [];
