@@ -53,13 +53,6 @@ let TelegramUpdate = class TelegramUpdate {
         const admId = ("callback_query" in ctx.update && ctx.update.callback_query.from.id) ||
             0;
         try {
-            const chatMember = await ctx.telegram.getChatMember(chatId, admId);
-            if (!["administrator", "creator"].includes(chatMember.status)) {
-                await ctx.answerCbQuery("Только администраторы могут удалять пользователей", {
-                    show_alert: true,
-                });
-                return;
-            }
             const botMember = await ctx.telegram.getChatMember(chatId, this.bot.botInfo.id);
             const botAdmin = botMember;
             if (!botAdmin.can_restrict_members) {
@@ -69,7 +62,6 @@ let TelegramUpdate = class TelegramUpdate {
                 return;
             }
             const userMessages = this.appService.getUserMessages(userId, chatId);
-            console.log(`Найдено ${userMessages.length} сообщений для удаления`);
             const BATCH_SIZE = 10;
             const batches = [];
             for (let i = 0; i < userMessages.length; i += BATCH_SIZE) {
