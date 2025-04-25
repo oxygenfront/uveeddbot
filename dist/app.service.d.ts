@@ -18,4 +18,5 @@ export declare class AppService {
     }[];
     deleteUserMessage(userId: string, messageId: string): void;
     deleteUserMessages(userId: string, chatId: string): void;
+    getIgnoredUsers(): string[];
 }

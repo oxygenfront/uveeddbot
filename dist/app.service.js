@@ -51,6 +51,31 @@ let AppService = class AppService {
         if (!userId || !chatId) {
             return;
         }
+        if (message.new_chat_member) {
+            const newMember = message.new_chat_member;
+            const newUserId = newMember.id.toString();
+            const isIgnoredUser = this.ignoredUsers.includes(newUserId);
+            if (isIgnoredUser) {
+                try {
+                    console.log(1);
+                    await ctx.telegram.banChatMember(chatId, Number(newUserId));
+                }
+                catch (error) {
+                    console.error(`Ошибка при кике пользователя ${newUserId} в чате ${chatId}:`, error);
+                }
+                return;
+            }
+            try {
+                const chatMember = await ctx.telegram.getChatMember(Number(chatId), Number(newUserId));
+                if (chatMember.status === "kicked") {
+                    await ctx.telegram.banChatMember(chatId, Number(newUserId));
+                }
+            }
+            catch (error) {
+                console.error(`Ошибка при проверке статуса пользователя ${newUserId} в чате ${chatId}:`, error);
+            }
+            return;
+        }
         const isIgnoredUser = this.ignoredUsers.includes(userId);
         if (isIgnoredUser) {
             return;
@@ -107,13 +132,13 @@ let AppService = class AppService {
                         inline_keyboard: [
                             [
                                 {
-                                    text: "Удалить сообщение",
+                                    text: "🗑️ Удалить сообщение",
                                     callback_data: `delete_message_${messageId}_from_${userId}_in_${chatId}`,
                                 },
                             ],
                             [
                                 {
-                                    text: "Удалить пользователя",
+                                    text: "❌ Заблокировать пользователя",
                                     callback_data: `delete_user_${userId}_from_${chatId}`,
                                 },
                             ],
@@ -153,6 +178,9 @@ let AppService = class AppService {
         if (this.userMessages.get(userId)?.length === 0) {
             this.userMessages.delete(userId);
         }
+    }
+    getIgnoredUsers() {
+        return this.ignoredUsers;
     }
 };
 exports.AppService = AppService;
