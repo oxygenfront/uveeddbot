@@ -122,7 +122,7 @@ let AppService = class AppService {
             await this.handleNewChatMember(ctx, userId, chatId);
             return;
         }
-        if (this.ignoredUsers.includes(userId))
+        if (this.ignoredUsers.includes(BigInt(userId)))
             return;
         if (messageId) {
             this.storeUserMessage(userId, chatId, messageId);
