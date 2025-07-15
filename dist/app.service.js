@@ -48,24 +48,26 @@ let AppService = class AppService {
         }
     }
     async onStart(ctx) {
-        return ctx.reply("Меню администратора", {
-            reply_markup: {
-                inline_keyboard: [
-                    [
-                        {
-                            text: "➕ Добавить исключения",
-                            callback_data: "add_users_to_exceptions",
-                        },
+        if (ctx.message && ctx.message.from.id) {
+            return ctx.reply("Меню администратора", {
+                reply_markup: {
+                    inline_keyboard: [
+                        [
+                            {
+                                text: "➕ Добавить исключения",
+                                callback_data: "add_users_to_exceptions",
+                            },
+                        ],
+                        [
+                            {
+                                text: "🗑️ Удалить исключения",
+                                callback_data: "remove_users_from_exceptions",
+                            },
+                        ],
                     ],
-                    [
-                        {
-                            text: "🗑️ Удалить исключения",
-                            callback_data: "remove_users_from_exceptions",
-                        },
-                    ],
-                ],
-            },
-        });
+                },
+            });
+        }
     }
     async handleAddUsersToExceptions(ctx, arrayIds) {
         const userIds = arrayIds
@@ -213,7 +215,7 @@ let AppService = class AppService {
             await ctx.answerCbQuery("Пользователь добавлен в исключения", {
                 show_alert: false,
             });
-            const adminNotification = `Пользователь @${this.telegramUtils.escapeMarkdown(username)} (ID: ${userId}) добавлен в исключения в чате ${ctx.chat && ctx.chat["title"]}`;
+            const adminNotification = `Пользователь @${this.telegramUtils.escapeMarkdown(username)} (ID: ${userId}) добавлен в исключения`;
             await this.notifyAdminsWithMessage(adminNotification);
         }
         catch (error) {
@@ -323,7 +325,7 @@ let AppService = class AppService {
                             [
                                 {
                                     text: "➕ Добавить пользователя в исключения",
-                                    callback_data: `${CALLBACK_PATTERNS.ADD_TO_EXCEPTIONS}${userId}`,
+                                    callback_data: `${CALLBACK_PATTERNS.ADD_TO_EXCEPTIONS}${userId}_to_exceptions`,
                                 },
                             ],
                         ],
