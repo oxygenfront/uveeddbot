@@ -9,6 +9,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.AppModule = void 0;
 const common_1 = require("@nestjs/common");
 const config_1 = require("@nestjs/config");
+const nestjs_prisma_1 = require("nestjs-prisma");
 const nestjs_telegraf_1 = require("nestjs-telegraf");
 const app_service_1 = require("./app.service");
 const telegraf_service_1 = require("./telegraf.service");
@@ -21,6 +22,12 @@ exports.AppModule = AppModule = __decorate([
     (0, common_1.Module)({
         imports: [
             config_1.ConfigModule,
+            nestjs_prisma_1.PrismaModule.forRoot({
+                isGlobal: true,
+                prismaServiceOptions: {
+                    explicitConnect: true,
+                },
+            }),
             nestjs_telegraf_1.TelegrafModule.forRootAsync({
                 imports: [config_1.ConfigModule],
                 inject: [config_1.ConfigService],

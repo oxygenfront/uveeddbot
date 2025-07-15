@@ -16,128 +16,44 @@ exports.TelegramUpdate = void 0;
 const nestjs_telegraf_1 = require("nestjs-telegraf");
 const telegraf_1 = require("telegraf");
 const app_service_1 = require("./app.service");
-const telegram_utils_1 = require("./telegram.utils");
 let TelegramUpdate = class TelegramUpdate {
-    constructor(appService, bot, telegramUtils) {
+    constructor(appService, bot) {
         this.appService = appService;
         this.bot = bot;
-        this.telegramUtils = telegramUtils;
     }
     async onStart(ctx) {
-        await ctx.reply("Привет");
-    }
-    async onText(ctx) {
-        if (ctx.chat &&
-            (ctx.chat.type === "group" || ctx.chat.type === "supergroup")) {
-            await this.appService.handleMessage(ctx);
-        }
+        await this.appService.onStart(ctx);
     }
     async onDelete(ctx) {
-        if (!(this.bot && this.bot.botInfo)) {
-            await ctx.answerCbQuery("Ошибка: бот не инициализирован", {
-                show_alert: true,
-            });
-            return;
-        }
-        if (!("match" in ctx && ctx.match)) {
-            await ctx.answerCbQuery("Ошибка: неверный формат callback_data", {
-                show_alert: true,
-            });
-            return;
-        }
-        const username = ("callback_query" in ctx.update &&
-            ctx.update.callback_query.from.username) ||
-            "unknown";
-        const userId = ctx.match[1];
-        const chatId = ctx.match[2];
-        try {
-            const botMember = await ctx.telegram.getChatMember(chatId, this.bot.botInfo.id);
-            const botAdmin = botMember;
-            if (!botAdmin.can_restrict_members) {
-                await ctx.answerCbQuery("Бот не имеет прав для удаления пользователей", {
-                    show_alert: true,
-                });
-                return;
-            }
-            const userMessages = this.appService.getUserMessages(userId, chatId);
-            const BATCH_SIZE = 10;
-            const batches = [];
-            for (let i = 0; i < userMessages.length; i += BATCH_SIZE) {
-                batches.push(userMessages.slice(i, i + BATCH_SIZE));
-            }
-            for (const batch of batches) {
-                const deletePromises = batch.map(async (message) => {
-                    try {
-                        await ctx.telegram.deleteMessage(chatId, Number(message.messageId));
-                    }
-                    catch (error) {
-                        console.warn(`Не удалось удалить сообщение ${message.messageId}: ${error.message}`);
-                    }
-                });
-                await Promise.all(deletePromises);
-                await new Promise((resolve) => setTimeout(resolve, 100));
-            }
-            this.appService.deleteUserMessages(userId, chatId);
-            await ctx.telegram.banChatMember(chatId, Number(userId));
-            await ctx.answerCbQuery("Пользователь успешно удален", {
-                show_alert: false,
-            });
-            const adminNotification = `Пользователь с ID ${userId} удален из чата пользователем @${this.telegramUtils.escapeMarkdown(username)}`;
-            for (const adminChatId of this.appService.getAdminChatIds()) {
-                await ctx.telegram.sendMessage(adminChatId, adminNotification, {
-                    parse_mode: "MarkdownV2",
-                });
-            }
-        }
-        catch (error) {
-            console.error("Ошибка при удалении пользователя или сообщений:", error);
-            await ctx.answerCbQuery(`Ошибка: ${error.message}`, { show_alert: true });
-        }
+        await this.appService.handleDeleteUser(ctx);
     }
     async onDeleteMessage(ctx) {
-        if (!(this.bot && this.bot.botInfo)) {
-            await ctx.answerCbQuery("Ошибка: бот не инициализирован", {
-                show_alert: true,
-            });
+        await this.appService.handleDeleteMessage(ctx);
+    }
+    async handleAddUserToExceptions(ctx) {
+        await this.appService.handleAddUserToExceptions(ctx);
+    }
+    async addUsersToExceptions(ctx) {
+        const message = ctx.message;
+        const text = message.text;
+        const idsString = text.replace(/\/add_users_to_exceptions\s*/, "").trim();
+        if (!idsString) {
+            await ctx.reply("Пожалуйста, укажите список ID через пробел или новую строку, например: /add_users_to_exceptions 7540580123 7211371377");
             return;
         }
-        if (!("match" in ctx && ctx.match)) {
-            await ctx.answerCbQuery("Ошибка: неверный формат callback_data", {
-                show_alert: true,
-            });
+        const arrayIds = idsString
+            .split(/\s+/)
+            .map((id) => id.trim())
+            .filter((id) => id.length > 0 && !isNaN(Number(id)));
+        if (arrayIds.length === 0) {
+            await ctx.reply("Не удалось распознать ID. Укажите корректные числовые значения.");
             return;
         }
-        const messageId = ctx.match[1];
-        const userId = ctx.match[2];
-        const chatId = ctx.match[3];
-        const username = ("callback_query" in ctx.update &&
-            ctx.update.callback_query.from.username) ||
-            "unknown";
-        const admId = ("callback_query" in ctx.update && ctx.update.callback_query.from.id) ||
-            0;
-        try {
-            const botMember = await ctx.telegram.getChatMember(chatId, this.bot.botInfo.id);
-            const botAdmin = botMember;
-            if (!botAdmin.can_delete_messages) {
-                await ctx.answerCbQuery("Бот не имеет прав для удаления сообщений", {
-                    show_alert: true,
-                });
-                return;
-            }
-            this.appService.deleteUserMessage(userId, messageId);
-            await ctx.telegram.deleteMessage(chatId, Number(messageId));
-            await ctx.answerCbQuery("Сообщение успешно удалено", {
-                show_alert: false,
-            });
-            const adminNotification = `Сообщение с ID \`${this.telegramUtils.escapeMarkdown(messageId)}\` удалено из чата \`${this.telegramUtils.escapeMarkdown(chatId)}\` администратором @${this.telegramUtils.escapeMarkdown(username)}`;
-            for (const adminChatId of this.appService.getAdminChatIds()) {
-                await ctx.telegram.sendMessage(adminChatId, adminNotification, {
-                    parse_mode: "MarkdownV2",
-                });
-            }
-        }
-        catch (error) {
-            await ctx.answerCbQuery(`Ошибка: ${error.message}`, { show_alert: true });
+        await this.appService.handleAddUsersToExceptions(ctx, arrayIds);
+    }
+    async onMessage(ctx) {
+        if (ctx.chat?.type === "group" || ctx.chat?.type === "supergroup") {
+            await this.appService.handleMessage(ctx);
         }
     }
 };
@@ -149,13 +65,6 @@ __decorate([
     __metadata("design:paramtypes", [telegraf_1.Context]),
     __metadata("design:returntype", Promise)
 ], TelegramUpdate.prototype, "onStart", null);
-__decorate([
-    (0, nestjs_telegraf_1.On)("message"),
-    __param(0, (0, nestjs_telegraf_1.Ctx)()),
-    __metadata("design:type", Function),
-    __metadata("design:paramtypes", [telegraf_1.Context]),
-    __metadata("design:returntype", Promise)
-], TelegramUpdate.prototype, "onText", null);
 __decorate([
     (0, nestjs_telegraf_1.Action)(/^delete_user_(\d+)_from_(-?\d+)$/),
     __param(0, (0, nestjs_telegraf_1.Ctx)()),
@@ -170,11 +79,31 @@ __decorate([
     __metadata("design:paramtypes", [telegraf_1.Context]),
     __metadata("design:returntype", Promise)
 ], TelegramUpdate.prototype, "onDeleteMessage", null);
+__decorate([
+    (0, nestjs_telegraf_1.Action)(/^add_user_(\d+)_to_exceptions/),
+    __param(0, (0, nestjs_telegraf_1.Ctx)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [telegraf_1.Context]),
+    __metadata("design:returntype", Promise)
+], TelegramUpdate.prototype, "handleAddUserToExceptions", null);
+__decorate([
+    (0, nestjs_telegraf_1.Command)(/^add_users_to_exceptions/),
+    __param(0, (0, nestjs_telegraf_1.Ctx)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [telegraf_1.Context]),
+    __metadata("design:returntype", Promise)
+], TelegramUpdate.prototype, "addUsersToExceptions", null);
+__decorate([
+    (0, nestjs_telegraf_1.On)("message"),
+    __param(0, (0, nestjs_telegraf_1.Ctx)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [telegraf_1.Context]),
+    __metadata("design:returntype", Promise)
+], TelegramUpdate.prototype, "onMessage", null);
 exports.TelegramUpdate = TelegramUpdate = __decorate([
     (0, nestjs_telegraf_1.Update)(),
     __param(1, (0, nestjs_telegraf_1.InjectBot)()),
     __metadata("design:paramtypes", [app_service_1.AppService,
-        telegraf_1.Telegraf,
-        telegram_utils_1.TelegramUtils])
+        telegraf_1.Telegraf])
 ], TelegramUpdate);
 //# sourceMappingURL=telegram.udpate.js.map

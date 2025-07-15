@@ -1,22 +1,37 @@
-import { ConfigService } from "@nestjs/config";
-import { Context } from "telegraf";
+import { OnModuleInit } from "@nestjs/common";
+import { PrismaService } from "nestjs-prisma";
+import { Context, Telegraf } from "telegraf";
 import { TelegrafService } from "./telegraf.service";
 import { TelegramUtils } from "./telegram.utils";
-export declare class AppService {
-    private readonly configService;
+export declare class AppService implements OnModuleInit {
+    private readonly prisma;
+    private readonly bot;
     private readonly telegrafService;
     private readonly telegramUtils;
-    private readonly ignoredUsers;
-    private readonly adminChatIds;
+    private ignoredUsers;
+    private adminChatIds;
     private readonly userMessages;
-    constructor(configService: ConfigService, telegrafService: TelegrafService, telegramUtils: TelegramUtils);
-    getAdminChatIds(): string[];
+    constructor(prisma: PrismaService, bot: Telegraf, telegrafService: TelegrafService, telegramUtils: TelegramUtils);
+    onModuleInit(): Promise<void>;
+    onStart(ctx: Context): Promise<import("@telegraf/types").Message.TextMessage>;
+    handleAddUsersToExceptions(ctx: Context, arrayIds: string[]): Promise<void>;
+    handleRemoveUsersFromExceptions(ctx: Context): Promise<void>;
     handleMessage(ctx: Context): Promise<void>;
-    getUserMessages(userId: string, chatId: string): {
-        chatId: string;
-        messageId: string;
+    handleDeleteUser(ctx: Context): Promise<void>;
+    handleDeleteMessage(ctx: Context): Promise<void>;
+    handleAddUserToExceptions(ctx: Context): Promise<void>;
+    getUserMessages(userId: number, chatId: number): {
+        chatId: number;
+        messageId: number;
     }[];
-    deleteUserMessage(userId: string, messageId: string): void;
-    deleteUserMessages(userId: string, chatId: string): void;
-    getIgnoredUsers(): string[];
+    deleteUserMessage(userId: number, messageId: number): void;
+    deleteUserMessages(userId: number, chatId: number): void;
+    private handleNewChatMember;
+    private storeUserMessage;
+    private getMessageType;
+    private createNotification;
+    private notifyAdmins;
+    private notifyAdminsWithMessage;
+    private deleteMessagesInBatches;
+    private handleError;
 }

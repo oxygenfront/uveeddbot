@@ -1,13 +1,13 @@
 import { Context, Telegraf } from "telegraf";
 import { AppService } from "./app.service";
-import { TelegramUtils } from "./telegram.utils";
 export declare class TelegramUpdate {
     private readonly appService;
     private readonly bot;
-    private readonly telegramUtils;
-    constructor(appService: AppService, bot: Telegraf, telegramUtils: TelegramUtils);
+    constructor(appService: AppService, bot: Telegraf<Context>);
     onStart(ctx: Context): Promise<void>;
-    onText(ctx: Context): Promise<void>;
     onDelete(ctx: Context): Promise<void>;
     onDeleteMessage(ctx: Context): Promise<void>;
+    handleAddUserToExceptions(ctx: Context): Promise<void>;
+    addUsersToExceptions(ctx: Context): Promise<void>;
+    onMessage(ctx: Context): Promise<void>;
 }
