@@ -48,7 +48,9 @@ let AppService = class AppService {
         }
     }
     async onStart(ctx) {
-        if (ctx.message && ctx.message.from.id) {
+        if (ctx.message &&
+            ctx.message.from.id &&
+            this.adminChatIds.includes(BigInt(ctx.message.from.id))) {
             return ctx.reply("Меню администратора", {
                 reply_markup: {
                     inline_keyboard: [
