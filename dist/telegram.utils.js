@@ -5,20 +5,22 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
     else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
     return c > 3 && r && Object.defineProperty(target, key, r), r;
 };
+var __metadata = (this && this.__metadata) || function (k, v) {
+    if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.TelegramUtils = void 0;
 const common_1 = require("@nestjs/common");
 const axios_1 = require("axios");
 const canvas_1 = require("canvas");
+const nestjs_prisma_1 = require("nestjs-prisma");
 const sharp = require("sharp");
 let TelegramUtils = class TelegramUtils {
+    constructor(prisma) {
+        this.prisma = prisma;
+    }
     escapeMarkdown(text) {
         return text.replace(/([[\]()>#+_\-=|{}.!%\\])/g, "\\$1");
-    }
-    measureTextWidth(text) {
-        const ctx = (0, canvas_1.createCanvas)(1, 1).getContext("2d");
-        ctx.font = "16px Arial";
-        return ctx.measureText(text).width;
     }
     getUsername(ctx) {
         if ("callback_query" in ctx.update) {
@@ -241,27 +243,36 @@ let TelegramUtils = class TelegramUtils {
         ctxCanvas.fillText(timestamp, bubbleLeft + bubbleWidth - ctxCanvas.measureText(timestamp).width + 10, bubbleTop + bubbleHeight - 13);
         return canvas.toBuffer();
     }
+    measureTextWidth(text) {
+        const ctx = (0, canvas_1.createCanvas)(1, 1).getContext("2d");
+        ctx.font = "16px Arial";
+        return ctx.measureText(text).width;
+    }
     wrapText(text, maxWidth) {
-        const words = text.split(" ");
+        const paragraphs = text.split("\n");
         const lines = [];
-        let currentLine = words[0] || "";
-        for (let i = 1; i < words.length; i++) {
-            const word = words[i];
-            const width = this.measureTextWidth(currentLine + " " + word);
-            if (width < maxWidth) {
-                currentLine += " " + word;
+        for (const paragraph of paragraphs) {
+            const words = paragraph.split(" ");
+            let currentLine = words[0] || "";
+            for (let i = 1; i < words.length; i++) {
+                const word = words[i];
+                const width = this.measureTextWidth(currentLine + " " + word);
+                if (width < maxWidth) {
+                    currentLine += " " + word;
+                }
+                else {
+                    lines.push(currentLine);
+                    currentLine = word;
+                }
             }
-            else {
-                lines.push(currentLine);
-                currentLine = word;
-            }
+            lines.push(currentLine);
         }
-        lines.push(currentLine);
         return lines;
     }
 };
 exports.TelegramUtils = TelegramUtils;
 exports.TelegramUtils = TelegramUtils = __decorate([
-    (0, common_1.Injectable)()
+    (0, common_1.Injectable)(),
+    __metadata("design:paramtypes", [nestjs_prisma_1.PrismaService])
 ], TelegramUtils);
 //# sourceMappingURL=telegram.utils.js.map
