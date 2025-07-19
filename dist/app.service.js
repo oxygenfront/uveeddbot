@@ -62,31 +62,11 @@ let AppService = class AppService {
             console.error("Ошибка при инициализации данных из Prisma:", error);
         }
     }
-    async onStart(ctx) {
-        if (ctx.message &&
-            ctx.message.from.id &&
-            this.adminChatIds.includes(BigInt(ctx.message.from.id))) {
-            return ctx.reply("Меню администратора", {
-                reply_markup: {
-                    inline_keyboard: [
-                        [
-                            {
-                                text: "➕ Добавить исключения",
-                                callback_data: "add_users_to_exceptions",
-                            },
-                        ],
-                        [
-                            {
-                                text: "🗑️ Удалить исключения",
-                                callback_data: "remove_users_from_exceptions",
-                            },
-                        ],
-                    ],
-                },
-            });
-        }
-    }
     async handleAddUsersToExceptions(ctx, arrayIds) {
+        if (!this.isAdmin(ctx)) {
+            await ctx.reply("Эта команда доступна только администраторам.");
+            return;
+        }
         const userIds = arrayIds
             .map((id) => BigInt(id.trim()))
             .filter((id) => !isNaN(Number(id)) && id >= 0n);
@@ -128,6 +108,10 @@ let AppService = class AppService {
         }
     }
     async handleDeleteUsersFromExceptions(ctx, arrayIds) {
+        if (!this.isAdmin(ctx)) {
+            await ctx.reply("Эта команда доступна только администраторам.");
+            return;
+        }
         const userIds = arrayIds
             .map((id) => {
             try {
@@ -297,6 +281,10 @@ let AppService = class AppService {
         if (this.userMessages.get(userId)?.length === 0) {
             this.userMessages.delete(userId);
         }
+    }
+    isAdmin(ctx) {
+        const userId = (ctx.message && ctx.message.from.id) || 0;
+        return this.adminChatIds.includes(BigInt(userId));
     }
     async handleNewChatMember(ctx, userId, chatId) {
         if (this.ignoredUsers.includes(userId)) {

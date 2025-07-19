@@ -13,7 +13,6 @@ export declare class AppService implements OnModuleInit {
     private readonly userMessages;
     constructor(prisma: PrismaService, bot: Telegraf, telegrafService: TelegrafService, telegramUtils: TelegramUtils);
     onModuleInit(): Promise<void>;
-    onStart(ctx: Context): Promise<import("@telegraf/types").Message.TextMessage | undefined>;
     handleAddUsersToExceptions(ctx: Context, arrayIds: string[]): Promise<void>;
     handleDeleteUsersFromExceptions(ctx: Context, arrayIds: string[]): Promise<void>;
     handleMessage(ctx: Context): Promise<void>;
@@ -26,6 +25,7 @@ export declare class AppService implements OnModuleInit {
     }[];
     deleteUserMessage(userId: number, messageId: number): void;
     deleteUserMessages(userId: number, chatId: number): void;
+    private isAdmin;
     private handleNewChatMember;
     private storeUserMessage;
     private getMessageType;

@@ -21,9 +21,6 @@ let TelegramUpdate = class TelegramUpdate {
         this.appService = appService;
         this.bot = bot;
     }
-    async onStart(ctx) {
-        await this.appService.onStart(ctx);
-    }
     async onDelete(ctx) {
         await this.appService.handleDeleteUser(ctx);
     }
@@ -78,13 +75,6 @@ let TelegramUpdate = class TelegramUpdate {
     }
 };
 exports.TelegramUpdate = TelegramUpdate;
-__decorate([
-    (0, nestjs_telegraf_1.Start)(),
-    __param(0, (0, nestjs_telegraf_1.Ctx)()),
-    __metadata("design:type", Function),
-    __metadata("design:paramtypes", [telegraf_1.Context]),
-    __metadata("design:returntype", Promise)
-], TelegramUpdate.prototype, "onStart", null);
 __decorate([
     (0, nestjs_telegraf_1.Action)(/^delete_user_(\d+)_from_(-?\d+)$/),
     __param(0, (0, nestjs_telegraf_1.Ctx)()),
