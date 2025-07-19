@@ -112,7 +112,41 @@ let AppService = class AppService {
             await ctx.reply("Произошла ошибка при добавлении пользователей в исключения.");
         }
     }
-    async handleRemoveUsersFromExceptions(ctx) { }
+    async handleDeleteUsersFromExceptions(ctx, arrayIds) {
+        const userIds = arrayIds
+            .map((id) => {
+            try {
+                return BigInt(id.trim());
+            }
+            catch {
+                return null;
+            }
+        })
+            .filter((id) => id !== null && id >= 0n);
+        if (userIds.length === 0) {
+            await ctx.reply("Нет корректных ID для удаления.");
+            return;
+        }
+        try {
+            const result = await this.prisma.exceptionIds.deleteMany({
+                where: {
+                    id: { in: userIds },
+                },
+            });
+            if (result.count === 0) {
+                await ctx.reply("Указанные ID не были найдены в исключениях.");
+                return;
+            }
+            this.ignoredUsers = this.ignoredUsers.filter((id) => !userIds.includes(BigInt(id)));
+            await ctx.reply(`Успешно удалено из исключений: ${userIds
+                .map((id) => id.toString())
+                .join(", ")}`);
+        }
+        catch (error) {
+            console.error("Ошибка при удалении пользователей из исключений:", error);
+            await ctx.reply("Произошла ошибка при удалении пользователей из исключений.");
+        }
+    }
     async handleMessage(ctx) {
         const message = ctx.message;
         const userId = message.from?.id;

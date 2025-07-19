@@ -51,14 +51,19 @@ let TelegramUtils = class TelegramUtils {
         const hasAudio = !!message.audio;
         const hasVoice = !!message.voice;
         const hasAnimation = !!message.animation;
-        let contentToDisplay = message.text || "Без текста";
+        let contentToDisplay = message.text || message.caption || "Без текста";
         const maxTextWidth = 280;
         const lineHeight = 22;
         let lines = [];
         let bubbleHeight = 60;
         let bubbleWidth = 0;
         if (hasPhoto || hasSticker || hasAnimation) {
-            bubbleHeight = 200;
+            lines =
+                message.text || message.caption
+                    ? this.wrapText(contentToDisplay, maxTextWidth)
+                    : [];
+            const textHeight = lines.length * lineHeight;
+            bubbleHeight = 200 + textHeight;
             bubbleWidth = 300;
         }
         else if (hasAudio || hasVoice) {
@@ -164,15 +169,20 @@ let TelegramUtils = class TelegramUtils {
                 const imageBuffer = Buffer.from(response.data);
                 const { width, height } = await sharp(imageBuffer).metadata();
                 const aspectRatio = width / height;
-                const displayHeight = bubbleHeight - 40;
+                const displayHeight = 140;
                 const displayWidth = displayHeight * aspectRatio;
                 const image = await (0, canvas_1.loadImage)(imageBuffer);
-                ctxCanvas.drawImage(image, bubbleLeft + 10, bubbleTop + 20, Math.min(displayWidth, bubbleWidth - 40), displayHeight);
+                ctxCanvas.drawImage(image, bubbleLeft + 10, bubbleTop + 45, Math.min(displayWidth, bubbleWidth - 40), displayHeight);
+                if (lines.length > 0) {
+                    ctxCanvas.fillStyle = "#fff";
+                    ctxCanvas.font = "14px Arial";
+                    lines.forEach((line, i) => {
+                        ctxCanvas.fillText(line, bubbleLeft + 10, bubbleTop + 45 + displayHeight + 25 + i * lineHeight);
+                    });
+                }
             }
             catch (error) {
                 console.error("Error loading photo:", error.message);
-                ctxCanvas.fillStyle = "#fff";
-                ctxCanvas.fillText("Ошибка загрузки изображения", bubbleLeft + 10, bubbleTop + 40);
             }
         }
         else if (hasSticker) {
@@ -186,10 +196,10 @@ let TelegramUtils = class TelegramUtils {
                 const pngBuffer = await sharp(webpBuffer).png().toBuffer();
                 const { width, height } = await sharp(pngBuffer).metadata();
                 const aspectRatio = width / height;
-                const displayHeight = bubbleHeight - 40;
+                const displayHeight = bubbleHeight - 60;
                 const displayWidth = displayHeight * aspectRatio;
                 const image = await (0, canvas_1.loadImage)(pngBuffer);
-                ctxCanvas.drawImage(image, bubbleLeft + 10, bubbleTop + 20, Math.min(displayWidth, bubbleWidth - 40), displayHeight);
+                ctxCanvas.drawImage(image, bubbleLeft + 10, bubbleTop + 45, Math.min(displayWidth, bubbleWidth - 40), displayHeight);
             }
             catch (error) {
                 console.error("Error loading sticker:", error.message);
@@ -207,10 +217,10 @@ let TelegramUtils = class TelegramUtils {
                 const imageBuffer = Buffer.from(response.data);
                 const { width, height } = await sharp(imageBuffer).metadata();
                 const aspectRatio = width / height;
-                const displayHeight = bubbleHeight - 40;
+                const displayHeight = bubbleHeight - 60;
                 const displayWidth = displayHeight * aspectRatio;
                 const image = await (0, canvas_1.loadImage)(imageBuffer);
-                ctxCanvas.drawImage(image, bubbleLeft + 10, bubbleTop + 20, Math.min(displayWidth, bubbleWidth - 40), displayHeight);
+                ctxCanvas.drawImage(image, bubbleLeft + 10, bubbleTop + 45, Math.min(displayWidth, bubbleWidth - 40), displayHeight);
             }
             catch (error) {
                 console.error("Error loading animation:", error.message);

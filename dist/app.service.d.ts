@@ -15,7 +15,7 @@ export declare class AppService implements OnModuleInit {
     onModuleInit(): Promise<void>;
     onStart(ctx: Context): Promise<import("@telegraf/types").Message.TextMessage | undefined>;
     handleAddUsersToExceptions(ctx: Context, arrayIds: string[]): Promise<void>;
-    handleRemoveUsersFromExceptions(ctx: Context): Promise<void>;
+    handleDeleteUsersFromExceptions(ctx: Context, arrayIds: string[]): Promise<void>;
     handleMessage(ctx: Context): Promise<void>;
     handleDeleteUser(ctx: Context): Promise<void>;
     handleDeleteMessage(ctx: Context): Promise<void>;

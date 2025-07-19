@@ -9,5 +9,6 @@ export declare class TelegramUpdate {
     onDeleteMessage(ctx: Context): Promise<void>;
     handleAddUserToExceptions(ctx: Context): Promise<void>;
     addUsersToExceptions(ctx: Context): Promise<void>;
+    handleDeleteUserFromExceptions(ctx: Context): Promise<void>;
     onMessage(ctx: Context): Promise<void>;
 }

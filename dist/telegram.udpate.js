@@ -51,6 +51,26 @@ let TelegramUpdate = class TelegramUpdate {
         }
         await this.appService.handleAddUsersToExceptions(ctx, arrayIds);
     }
+    async handleDeleteUserFromExceptions(ctx) {
+        const message = ctx.message;
+        const text = message.text;
+        const idsString = text
+            .replace(/\/delete_users_from_exceptions\s*/, "")
+            .trim();
+        if (!idsString) {
+            await ctx.reply("Пожалуйста, укажите список ID через пробел или новую строку, например: /delete_users_from_exceptions 7540580123 7211371377");
+            return;
+        }
+        const arrayIds = idsString
+            .split(/\s+/)
+            .map((id) => id.trim())
+            .filter((id) => id.length > 0 && !isNaN(Number(id)));
+        if (arrayIds.length === 0) {
+            await ctx.reply("Не удалось распознать ID. Укажите корректные числовые значения.");
+            return;
+        }
+        await this.appService.handleDeleteUsersFromExceptions(ctx, arrayIds);
+    }
     async onMessage(ctx) {
         if (ctx.chat?.type === "group" || ctx.chat?.type === "supergroup") {
             await this.appService.handleMessage(ctx);
@@ -93,6 +113,13 @@ __decorate([
     __metadata("design:paramtypes", [telegraf_1.Context]),
     __metadata("design:returntype", Promise)
 ], TelegramUpdate.prototype, "addUsersToExceptions", null);
+__decorate([
+    (0, nestjs_telegraf_1.Command)(/^delete_users_from_exceptions/),
+    __param(0, (0, nestjs_telegraf_1.Ctx)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [telegraf_1.Context]),
+    __metadata("design:returntype", Promise)
+], TelegramUpdate.prototype, "handleDeleteUserFromExceptions", null);
 __decorate([
     (0, nestjs_telegraf_1.On)("message"),
     __param(0, (0, nestjs_telegraf_1.Ctx)()),
