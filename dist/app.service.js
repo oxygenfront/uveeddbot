@@ -42,6 +42,21 @@ let AppService = class AppService {
             ]);
             this.adminChatIds = adminChatIds.map((e) => e.id);
             this.ignoredUsers = exceptionsIds.map((e) => e.id);
+            await this.bot.telegram.setMyCommands([
+                { command: "/start", description: "Запустить бота" },
+                {
+                    command: "/add_users_to_exceptions",
+                    description: "Добавить в" +
+                        " исключения /add_users_to_exceptions 49348248 432923 484348" +
+                        " 84382",
+                },
+                {
+                    command: "/delete_users_from_exceptions",
+                    description: "Удалить из" +
+                        " исключений /delete_users_from_exceptions 754857 4857 753457483" +
+                        " 34934",
+                },
+            ]);
         }
         catch (error) {
             console.error("Ошибка при инициализации данных из Prisma:", error);
